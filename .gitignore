@@ -1,2 +1,4 @@
 *.vdi
 saida.txt
+IOBound/target/
+IOBound/files/
