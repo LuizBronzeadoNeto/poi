@@ -1,11 +1,22 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import random
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
+REQUESTS = Counter("http_requests_total", "Requests handled", ["status"])
+IN_FLIGHT = Gauge("http_requests_in_flight", "Requests currently running")
+LATENCY = Histogram(
+    "http_request_seconds",
+    "Request latency",
+    buckets=(0.1, 0.5, 1, 5, 10, 30, 60, 120, 300)
+)
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         bound = random.randint(0,200000)
-        body = f"contando primos até {bound}"
-        self.count_primes(bound)
+        body = f"contando primos até {bound}".encode()
+        with IN_FLIGHT.track_inprogress(), LATENCY.time():
+            self.count_primes(bound)
+        REQUESTS.labels(status="200").inc()
 
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
@@ -26,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-
-ThreadingHTTPServer.request_queue_size = 128
-ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+if __name__ == "__main__":
+    start_http_server(9100)
+    ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
 
