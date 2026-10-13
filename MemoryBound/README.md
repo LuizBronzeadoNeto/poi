@@ -50,3 +50,10 @@ o teste, acompanhe memória, swap e CPU no Prometheus e tire prints.
 pip install matplotlib
 python3 plot.py
 ```
+
+## Experimento extra: sem swap
+
+Para testar o cenário de 1 GB sem swap, depois de ligar a VM rode
+`sudo swapoff -a` dentro dela (o swap volta no próximo boot) e, na máquina
+hospedeira, `./loadtest.sh "1 GB sem swap"`. Os resultados entram no mesmo
+`resultados.csv` e nos mesmos gráficos.
