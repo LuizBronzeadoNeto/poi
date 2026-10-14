@@ -11,6 +11,7 @@ METRICAS = [
     ("cpu_pct", "Uso médio de CPU da VM (%)"),
     ("mem_pico_mb", "Pico de memória usada na VM (MB)"),
     ("swap_pico_mb", "Pico de swap usado na VM (MB)"),
+    ("concluidas_pct", "Requisições concluídas (%)"),
 ]
 
 with open("resultados.csv") as f:
@@ -24,7 +25,8 @@ for coluna, titulo in METRICAS:
         dados = [l for l in linhas if l["cenario"] == cenario and l[coluna]]
         x = [int(l["clientes"]) for l in dados]
         y = [float(l[coluna]) for l in dados]
-        plt.plot(x, y, marker="o", label=cenario, linestyle="--" if "CPUs" in cenario else "-")
+        estilo = "--" if "CPUs" in cenario else ":" if "sem swap" in cenario else "-"
+        plt.plot(x, y, marker="o", label=cenario, linestyle=estilo)
     plt.title(titulo)
     plt.xlabel("Clientes simultâneos")
     plt.xscale("log", base=2)

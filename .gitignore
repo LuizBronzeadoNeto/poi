@@ -1,12 +1,9 @@
 *.vdi
 saida.txt
-<<<<<<< HEAD
 .venv/
-=======
 IOBound/target/
 IOBound/files/
 IOBound/.venv/
 IOBound/.venv-plots/
 IOBound/__pycache__/
 IOBound/**/*.pyc
->>>>>>> 6a6874b91d0d1ca3087a1c4bcf84d84738968fce
