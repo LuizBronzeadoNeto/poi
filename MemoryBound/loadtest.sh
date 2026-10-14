@@ -1,9 +1,10 @@
 #!/bin/bash
+export LC_NUMERIC=C
 CENARIO=$1
-URL="http://localhost:8000/?mb=50&hold_ms=500"
+URL="http://127.0.0.1:8000/?mb=50&hold_ms=500"
 
 prom() {
-  curl -s -G "http://localhost:9090/api/v1/query" --data-urlencode "query=$1" | grep -o '"[0-9.e+-]*"\]' | tr -d '"]'
+  curl -s -G "http://127.0.0.1:9090/api/v1/query" --data-urlencode "query=$1" | grep -o '"[0-9.e+-]*"\]' | tr -d '"]'
 }
 
 [ -f resultados.csv ] || echo "cenario,clientes,vazao_rps,latencia_media_ms,latencia_p95_ms,falhas,cpu_pct,mem_pico_mb,swap_pico_mb,concluidas_pct" > resultados.csv
