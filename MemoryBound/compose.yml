@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    network_mode: host
+    restart: always
+
+  node-exporter:
+    image: prom/node-exporter
+    network_mode: host
+    pid: host
+    restart: always
+
+  prometheus:
+    image: prom/prometheus
+    network_mode: host
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
