@@ -1,27 +1,29 @@
 #!/bin/bash
 export LC_NUMERIC=C
 
-VCPUS=$(nproc)
-CENARIO=${1:-"${VCPUS}_vcpu"}
 URL="http://localhost:8000/"
+PROM_URL="http://localhost:9090/api/v1/query"
 CSV="resultados_cpu.csv"
-
-if ! curl -s --max-time 10 "$URL" > /dev/null; then
-  echo "ERRO: A aplicacao em $URL nao esta respondendo!"
-  exit 1
-fi
 
 prom() {
   local val
-  val=$(curl -s -G "http://localhost:9090/api/v1/query" --data-urlencode "query=$1" \
+  val=$(curl -s -G "$PROM_URL" --data-urlencode "query=$1" \
     | grep -o '"[0-9.e+-]*"\]' | tr -d '"]' | head -n 1)
   echo "${val:-0}"
 }
 
+if ! curl -s --max-time 10 "$URL" > /dev/null; then
+  echo "ERRO: Nao foi possivel conectar em $URL (verifique se a VM e o container 'app' estao rodando)."
+  exit 1
+fi
+
+VCPUS=$(prom 'count(node_cpu_seconds_total{mode="idle"})')
+VCPUS=$(printf "%.0f" "$VCPUS" 2>/dev/null || echo 0)
+CENARIO=${1:-"${VCPUS}_vcpu"}
+
 if [ ! -f "$CSV" ]; then
   echo "cenario,vcpus,clientes,total_requests,vazao_rps,latencia_media_ms,latencia_p50_ms,latencia_p95_ms,latencia_max_ms,falhas,cpu_pct" > "$CSV"
 fi
-
 
 for c in 5 10 20 40 80; do
   n=$((c * 4))
@@ -29,6 +31,7 @@ for c in 5 10 20 40 80; do
   inicio=$SECONDS
   ab -l -r -s 120 -n "$n" -c "$c" "$URL" > saida.txt 2>&1
   duracao=$((SECONDS - inicio + 1))
+
   if [ "$duracao" -lt 10 ]; then
     janela="10s"
   else

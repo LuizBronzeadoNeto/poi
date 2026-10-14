@@ -1,75 +1,89 @@
-import csv
-from pathlib import Path
-
+import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import NullLocator
+import sys
+import os
 
-ARQUIVO_CSV = Path("results.csv")
-PASTA_SAIDA = Path("graficos")
+CSV_FILE = sys.argv[1] if len(sys.argv) > 1 else "resultados_cpu.csv"
 
-METRICAS = [
-    ("vazao_rps", "Vazão (req/s)"),
-    ("latencia_media_ms", "Latência média (ms)"),
-    ("latencia_p95_ms", "Latência p95 (ms)"),
-    ("falhas", "Requisições com falha"),
-    ("cpu_pct", "Uso médio de CPU da VM (%)"),
-    ("mem_pico_mb", "Pico de memória usada na VM (MB)"),
-    ("swap_pico_mb", "Pico de swap usado na VM (MB)"),
+if not os.path.exists(CSV_FILE):
+    print(f"Erro: Arquivo '{CSV_FILE}' nao encontrado.")
+    sys.exit(1)
+
+df = pd.read_csv(CSV_FILE)
+df = df.sort_values(by=["vcpus", "cenario", "clientes"])
+
+metrics = [
+    ("vazao_rps", "Vazão (Throughput) vs. Clientes", "Vazão (req/s)", "grafico_vazao.png"),
+    ("latencia_media_ms", "Latência Média vs. Clientes", "Latência Média (ms)", "grafico_latencia_media.png"),
+    ("latencia_p50_ms", "Latência Mediana (p50) vs. Clientes", "Latência p50 (ms)", "grafico_latencia_p50.png"),
+    ("latencia_p95_ms", "Latência p95 vs. Clientes", "Latência p95 (ms)", "grafico_latencia_p95.png"),
+    ("falhas", "Falhas vs. Clientes", "Número de Falhas", "grafico_falhas.png"),
+    ("cpu_pct", "Uso de CPU vs. Clientes", "Uso de CPU (%)", "grafico_cpu.png"),
 ]
 
+plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+colors = plt.cm.tab10.colors
+markers = ["o", "s", "^", "D", "v", "p", "*"]
 
-def ler_resultados(caminho: Path) -> list[dict]:
-    with caminho.open(newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+scenarios = df["cenario"].unique()
 
+for col, title, ylabel, filename in metrics:
+    plt.figure(figsize=(8, 5), dpi=150)
+    
+    for idx, cenario in enumerate(scenarios):
+        sub = df[df["cenario"] == cenario].sort_values("clientes")
+        vcpu_val = sub["vcpus"].iloc[0]
+        label = f"{cenario} ({vcpu_val} vCPU)" if str(vcpu_val) not in str(cenario) else str(cenario)
+        
+        plt.plot(
+            sub["clientes"],
+            sub[col],
+            marker=markers[idx % len(markers)],
+            color=colors[idx % len(colors)],
+            linewidth=2.2,
+            markersize=7,
+            label=label
+        )
 
-def montar_series(linhas: list[dict], coluna: str) -> dict[str, list[tuple[int, float]]]:
-    series: dict[str, list[tuple[int, float]]] = {}
-    for linha in linhas:
-        if not linha.get(coluna):
-            continue
-        ponto = (int(linha["clientes"]), float(linha[coluna]))
-        series.setdefault(linha["cenario"], []).append(ponto)
-    return {cenario: sorted(pontos) for cenario, pontos in series.items()}
+    plt.title(title, fontsize=13, fontweight="bold", pad=12)
+    plt.xlabel("Número de Clientes Concorrentes", fontsize=11)
+    plt.ylabel(ylabel, fontsize=11)
+    plt.xticks(sorted(df["clientes"].unique()))
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend(title="Cenário", frameon=True)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    print(f"Salvo: {filename}")
 
+fig, axes = plt.subplots(2, 3, figsize=(18, 10), dpi=150)
+axes = axes.flatten()
 
-def estilo_linha(cenario: str) -> str:
-    return "--" if "CPUs" in cenario else "-"
+for i, (col, title, ylabel, _) in enumerate(metrics):
+    ax = axes[i]
+    for idx, cenario in enumerate(scenarios):
+        sub = df[df["cenario"] == cenario].sort_values("clientes")
+        vcpu_val = sub["vcpus"].iloc[0]
+        label = f"{cenario} ({vcpu_val} vCPU)" if str(vcpu_val) not in str(cenario) else str(cenario)
+        
+        ax.plot(
+            sub["clientes"],
+            sub[col],
+            marker=markers[idx % len(markers)],
+            color=colors[idx % len(colors)],
+            linewidth=2,
+            markersize=6,
+            label=label
+        )
+    ax.set_title(title, fontsize=12, fontweight="bold")
+    ax.set_xlabel("Clientes Concorrentes")
+    ax.set_ylabel(ylabel)
+    ax.set_xticks(sorted(df["clientes"].unique()))
+    ax.grid(True, linestyle="--", alpha=0.6)
+    ax.legend(title="Cenário", fontsize=9)
 
-
-def plotar_metrica(linhas: list[dict], coluna: str, titulo: str, destino: Path) -> bool:
-    series = montar_series(linhas, coluna)
-    if not series:
-        return False
-
-    fig, ax = plt.subplots(figsize=(7, 4))
-    for cenario, pontos in series.items():
-        x, y = zip(*pontos)
-        ax.plot(x, y, marker="o", label=cenario, linestyle=estilo_linha(cenario))
-
-    clientes = sorted({x for pontos in series.values() for x, _ in pontos})
-    ax.set_xscale("log", base=2)
-    ax.set_xticks(clientes)
-    ax.set_xticklabels([str(c) for c in clientes])
-    ax.xaxis.set_minor_locator(NullLocator())
-    ax.set_ylim(bottom=0)
-    ax.set_title(titulo)
-    ax.set_xlabel("Clientes simultâneos")
-    ax.grid(alpha=0.3)
-    ax.legend(title="Cenário")
-
-    fig.savefig(destino, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    return True
-
-
-def main() -> None:
-    linhas = ler_resultados(ARQUIVO_CSV)
-    PASTA_SAIDA.mkdir(exist_ok=True)
-    for coluna, titulo in METRICAS:
-        if not plotar_metrica(linhas, coluna, titulo, PASTA_SAIDA / f"{coluna}.png"):
-            print(f"Sem dados para '{coluna}', gráfico ignorado.")
-
-
-if __name__ == "__main__":
-    main()
+plt.suptitle("Benchmark de Provisionamento de CPU", fontsize=16, fontweight="bold", y=1.02)
+plt.tight_layout()
+plt.savefig("dashboard_cpu.png", bbox_inches="tight")
+plt.close()
+print("Salvo: dashboard_cpu.png")
