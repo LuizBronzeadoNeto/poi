@@ -1,3 +1,9 @@
 *.vdi
 saida.txt
 .venv/
+IOBound/target/
+IOBound/files/
+IOBound/.venv/
+IOBound/.venv-plots/
+IOBound/__pycache__/
+IOBound/**/*.pyc
