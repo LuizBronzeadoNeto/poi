@@ -1,4 +1,5 @@
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ForkingMixIn
 import random
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
@@ -10,14 +11,15 @@ LATENCY = Histogram(
     buckets=(0.1, 0.5, 1, 5, 10, 30, 60, 120, 300)
 )
 
-class HighQueueThreadingServer(ThreadingHTTPServer):
+class MultiCoreHTTPServer(ForkingMixIn, HTTPServer):
     allow_reuse_address = True
-    request_queue_size = 128 
+    request_queue_size = 128
+    max_children = 128 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        bound = random.randint(0, 200000)
-        body = f"contando primos até {bound}".encode()
+        bound = random.randint(0, 50000)
+        body = f"contando primos até {bound}\n".encode()
         with IN_FLIGHT.track_inprogress(), LATENCY.time():
             self.count_primes(bound)
         REQUESTS.labels(status="200").inc()
@@ -43,5 +45,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     start_http_server(9101)
-    HighQueueThreadingServer(("0.0.0.0", 8000), Handler).serve_forever()
+    MultiCoreHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
 
