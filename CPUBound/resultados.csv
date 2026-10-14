@@ -1,2 +1,2 @@
 cenario,clientes,vazao_rps,latencia_media_ms,latencia_p95_ms,falhas,cpu_pct,mem_pico_mb,swap_pico_mb
-1 GB,5,0.35,13420,34533,1,21,460,0
+cpu_test,5,4423.60,0,0,99,1,468,1

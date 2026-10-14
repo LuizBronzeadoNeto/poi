@@ -1,4 +1,4 @@
-from http.server import BaseHTTPRequestHandler, ForkingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import random
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
@@ -9,6 +9,10 @@ LATENCY = Histogram(
     "Request latency",
     buckets=(0.1, 0.5, 1, 5, 10, 30, 60, 120, 300)
 )
+
+class HighQueueThreadingServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+    request_queue_size = 128 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -39,5 +43,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     start_http_server(9101)
-    ForkingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    HighQueueThreadingServer(("0.0.0.0", 8000), Handler).serve_forever()
 
