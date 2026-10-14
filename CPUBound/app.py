@@ -1,4 +1,4 @@
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ForkingHTTPServer
 import random
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
@@ -12,7 +12,7 @@ LATENCY = Histogram(
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        bound = random.randint(0,50000)
+        bound = random.randint(0, 200000)
         body = f"contando primos até {bound}".encode()
         with IN_FLIGHT.track_inprogress(), LATENCY.time():
             self.count_primes(bound)
@@ -33,11 +33,11 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 num_primes += 1
         return num_primes
-   
+
     def log_message(self, *args):
         pass
 
 if __name__ == "__main__":
     start_http_server(9101)
-    ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    ForkingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
 
