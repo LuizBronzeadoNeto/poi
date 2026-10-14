@@ -3,6 +3,7 @@ services:
     build: .
     ports:
       - "8000:8000"
+      - "9100:9100" 
 
   prometheus:
     image: prom/prometheus
