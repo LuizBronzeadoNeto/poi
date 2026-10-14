@@ -1,36 +1,30 @@
-#!/usr/bin/env bash
-VM="Ubuntu lts"
-OUT=results.csv
-echo "cpus,ram_mb,rps,mean_ms,p50_ms,p95_ms,failed,prom_avg_latency_s" > "$OUT"
+#!/bin/bash
+CENARIO=$1
+URL="http://localhost:8000/?mb=50&hold_ms=500"
 
-for cpus in 1 2 4; do
-  for ram in 1024 2048 4096; do
-    VBoxManage modifyvm "$VM" --cpus $cpus --memory $ram
-    VBoxManage startvm "$VM" --type headless
+prom() {
+  curl -s -G "http://localhost:9090/api/v1/query" --data-urlencode "query=$1" | grep -o '"[0-9.e+-]*"\]' | tr -d '"]'
+}
 
-    until curl -sf localhost:9090/-/ready >/dev/null; do sleep 2; done
-    until curl -s -o /dev/null --max-time 120 http://127.0.0.1:8000/; do sleep 2; done
-    sleep 10
+[ -f resultados.csv ] || echo "cenario,clientes,vazao_rps,latencia_media_ms,latencia_p95_ms,falhas,cpu_pct,mem_pico_mb,swap_pico_mb" > resultados.csv
 
-    start=$(date +%s)
-    ab -n 100 -c 10 -s 300 -e "ab_${cpus}_${ram}.csv" http://localhost:8000/ > "ab_${cpus}_${ram}.txt"
-    end=$(date +%s)
+for c in 5 10 20 40 80; do
+  inicio=$SECONDS
+  ab -r -l -s 60 -n $((c * 10)) -c $c "$URL" > saida.txt
+  janela=$((SECONDS - inicio + 1))s
+  sleep 3
 
-    sleep 10 
-    win=$((end - start + 10))
-    prom=$(curl -s localhost:9090/api/v1/query \
-    --data-urlencode "query=100 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[${win}s])) * 100" \
-    | jq -r '.data.result[0].value[1]')
+  vazao=$(grep "Requests per second" saida.txt | awk '{print $4}')
+  media=$(grep "^Total:" saida.txt | awk '{print $3}')
+  p95=$(grep " 95%" saida.txt | awk '{print $2}')
+  falhas=$(grep "Failed requests" saida.txt | awk '{print $3}')
 
-    f="ab_${cpus}_${ram}.txt"
-    rps=$(grep "Requests per second" "$f" | awk '{print $4}')
-    mean=$(grep -m1 "Time per request" "$f" | awk '{print $4}')
-    p50=$(grep "^  50%" "$f" | awk '{print $2}')
-    p95=$(grep "^  95%" "$f" | awk '{print $2}')
-    failed=$(grep "Failed requests" "$f" | awk '{print $3}')
-    echo "$cpus,$ram,$rps,$mean,$p50,$p95,$failed,$prom" >> "$OUT"
+  cpu=$(prom "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[$janela] offset 3s)))")
+  mem=$(prom "max_over_time(((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / 1024^2)[$janela:2s] offset 3s)")
+  swap=$(prom "max_over_time(((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / 1024^2)[$janela:2s] offset 3s)")
+  cpu=$(printf "%.0f" "$cpu"); mem=$(printf "%.0f" "$mem"); swap=$(printf "%.0f" "$swap")
 
-    VBoxManage controlvm "$VM" acpipowerbutton
-    until VBoxManage showvminfo "$VM" --machinereadable | grep -q 'VMState="poweroff"'; do sleep 2; done
-  done
+  echo "$CENARIO,$c,$vazao,$media,$p95,$falhas,$cpu,$mem,$swap" >> resultados.csv
+  echo "$CENARIO | $c clientes | $vazao req/s | media $media ms | p95 $p95 ms | $falhas falhas | CPU $cpu% | mem $mem MB | swap $swap MB"
+  sleep 10
 done
