@@ -29,7 +29,7 @@ for cpus in 1 2 4; do
     failed=$(grep "Failed requests" "$f" | awk '{print $3}')
     echo "$cpus,$ram,$rps,$mean,$p50,$p95,$failed,$prom" >> "$OUT"
 
-    VBoxManage controlvm "$VM" acpipoweroff
+    VBoxManage controlvm "$VM" acpipowerbutton
     until VBoxManage showvminfo "$VM" --machinereadable | grep -q 'VMState="poweroff"'; do sleep 2; done
   done
 done
