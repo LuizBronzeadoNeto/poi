@@ -113,7 +113,7 @@
                     "fillOpacity": 8,
                     "lineWidth": 2,
                     "showPoints": "never",
-                    "spanNulls": true
+                    "spanNulls": 10000
                   }
                 },
                 "overrides": [
@@ -218,7 +218,7 @@
                     "fillOpacity": 8,
                     "lineWidth": 2,
                     "showPoints": "never",
-                    "spanNulls": true
+                    "spanNulls": 10000
                   }
                 },
                 "overrides": []
@@ -309,7 +309,7 @@
                     "fillOpacity": 30,
                     "lineWidth": 2,
                     "showPoints": "never",
-                    "spanNulls": true,
+                    "spanNulls": 10000,
                     "stacking": {
                       "group": "A",
                       "mode": "normal"
