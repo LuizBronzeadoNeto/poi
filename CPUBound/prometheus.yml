@@ -1,6 +1,7 @@
 global:
-  scrape_interval: 5s
+  scrape_interval: 2s
+
 scrape_configs:
-  - job_name: primes
+  - job_name: vm
     static_configs:
-      - targets: ["app:9100"]
+      - targets: ["localhost:9100"]

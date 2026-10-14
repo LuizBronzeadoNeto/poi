@@ -9,6 +9,7 @@ for cpus in 1 2 4; do
     VBoxManage startvm "$VM" --type headless
 
     until curl -sf localhost:9090/-/ready >/dev/null; do sleep 2; done
+    until curl -s -o /dev/null --max-time 120 http://127.0.0.1:8000/; do sleep 2; done
     sleep 10
 
     start=$(date +%s)
