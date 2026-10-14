@@ -12,7 +12,7 @@ LATENCY = Histogram(
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        bound = random.randint(0,200000)
+        bound = random.randint(0,50000)
         body = f"contando primos até {bound}".encode()
         with IN_FLIGHT.track_inprogress(), LATENCY.time():
             self.count_primes(bound)
