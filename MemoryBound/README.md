@@ -10,47 +10,29 @@ curl "localhost:8000/?mb=100&hold_ms=1000"
 ## Deploy na máquina virtual
 
 1. Com a VM desligada, em Configurações -> Rede -> Avançado -> Redirecionamento de
-   portas, crie as regras 8000 -> 8000 (aplicação) e 9100 -> 9100 (node-exporter).
+   portas, crie as regras 8000 -> 8000 (aplicação) e 9090 -> 9090 (Prometheus).
 2. Ligue a VM, entre com osboxes / osboxes.org e rode:
 
 ```bash
 sudo apt update && sudo apt install -y docker.io docker-compose-v2 git
-git clone https://github.com/LuizBronzeadoNeto/poi.git && cd poi/MemoryBound
+git clone <url-do-repositorio> && cd <pasta-do-repositorio>/MemoryBound
 
 sudo docker compose up -d --build
 ```
 
-O compose.yml sobe a aplicação e o node-exporter, que expõe as métricas da VM.
-Para ver o estado use sudo docker compose ps e para parar tudo sudo docker
-compose down. Com restart: always os containers sobem sozinhos a cada boot da VM
-e a aplicação volta se o Linux matá-la por falta de memória.
+O compose.yml sobe a aplicação, o node-exporter e o Prometheus. Para ver o
+estado use sudo docker compose ps e para parar tudo sudo docker compose down.
 
-3. Na máquina hospedeira: curl localhost:8000.
+3. Na máquina hospedeira: curl localhost:8000 e http://localhost:9090 no navegador.
 
-## Monitoramento
-
-O Prometheus e o Grafana rodam na máquina hospedeira, fora da VM, para não
-consumir a memória e a CPU que estão sendo medidas e para continuarem coletando
-mesmo se a VM travar por falta de memória. O Prometheus coleta o node-exporter da
-VM pelo redirecionamento 9100 -> 9100. Na máquina hospedeira:
-
-```bash
-cd monitoramento
-docker compose up -d
-```
-
-- Grafana em http://localhost:3000, que já abre no painel com memória, swap e CPU
-  da VM (sem login; para editar, entre com admin / admin).
-- Prometheus em http://localhost:9090, usado também pelo loadtest.sh.
-
-O painel de CPU separa processamento de espera de E/S (iowait). Com swap em uso,
-a CPU passa boa parte do tempo esperando o disco, e isso não é processamento.
+Com restart: always os containers sobem sozinhos a cada boot da VM e a
+aplicação volta se o Linux matá-la por falta de memória.
 
 ## Experimentos
 
-Na máquina hospedeira, com o monitoramento rodando, instale o ab (sudo apt
-install apache2-utils). Para cada cenário: desligue a VM, mude a memória em
-Configurações -> Sistema, ligue a VM e rode:
+Na máquina hospedeira, instale o ab (sudo apt install apache2-utils). Para
+cada cenário: desligue a VM, mude a memória em Configurações -> Sistema, ligue a
+VM e rode:
 
 ```bash
 ./loadtest.sh "1 GB"
@@ -59,7 +41,7 @@ Configurações -> Sistema, ligue a VM e rode:
 O script testa 5, 10, 20, 40 e 80 clientes simultâneos e acrescenta uma linha por
 nível em resultados.csv (vazão, latência média e p95, falhas, uso de CPU e picos
 de memória e swap da VM, esses três lidos do Prometheus). Durante
-o teste, acompanhe memória, swap e CPU no Grafana e tire prints.
+o teste, acompanhe memória, swap e CPU no Prometheus e tire prints.
 
 ## Gráficos
 
