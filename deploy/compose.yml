@@ -1,0 +1,32 @@
+services:
+  cpu:
+    build: ../CPUBound
+    restart: always
+    ports:
+      - "8001:8000"
+    environment:
+      LOG_FILE: /logs/cpu.log
+    volumes:
+      - /mnt/dados/logs/cpu:/logs
+
+  memory:
+    build: ../MemoryBound
+    restart: always
+    ports:
+      - "8002:8000"
+    environment:
+      LOG_FILE: /logs/memory.log
+    volumes:
+      - /mnt/dados/logs/memory:/logs
+
+  io:
+    build: ../IOBound
+    restart: always
+    ports:
+      - "8003:8080"
+    environment:
+      LOGGING_FILE_NAME: /logs/io.log
+      SERVER_TOMCAT_ACCESSLOG_ENABLED: "true"
+      SERVER_TOMCAT_ACCESSLOG_DIRECTORY: /logs
+    volumes:
+      - /mnt/dados/logs/io:/logs

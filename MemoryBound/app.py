@@ -1,6 +1,11 @@
+import logging
+import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+
+if os.environ.get("LOG_FILE"):
+    logging.basicConfig(filename=os.environ["LOG_FILE"], level=logging.INFO, format="%(asctime)s %(message)s")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -19,8 +24,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, *args):
-        pass
+    def log_message(self, format, *args):
+        logging.info("%s %s", self.address_string(), format % args)
 
 
 ThreadingHTTPServer.request_queue_size = 128
