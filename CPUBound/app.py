@@ -1,7 +1,12 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ForkingMixIn
+import logging
+import os
 import random
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
+if os.environ.get("LOG_FILE"):
+    logging.basicConfig(filename=os.environ["LOG_FILE"], level=logging.INFO, format="%(asctime)s %(message)s")
 
 REQUESTS = Counter("http_requests_total", "Requests handled", ["status"])
 IN_FLIGHT = Gauge("http_requests_in_flight", "Requests currently running")
@@ -40,8 +45,8 @@ class Handler(BaseHTTPRequestHandler):
                 num_primes += 1
         return num_primes
 
-    def log_message(self, *args):
-        pass
+    def log_message(self, format, *args):
+        logging.info("%s %s", self.address_string(), format % args)
 
 if __name__ == "__main__":
     start_http_server(9101)
