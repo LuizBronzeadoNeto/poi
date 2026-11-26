@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory
+  template:
+    metadata:
+      labels:
+        app: memory
+    spec:
+      containers:
+        - name: memory
+          image: luizbronzeadoneto/memory-bound:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: LOG_FILE
+              value: /logs/memory.log
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          hostPath:
+            path: /mnt/dados/logs/memory
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memory
+spec:
+  type: NodePort
+  selector:
+    app: memory
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30002

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: io
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: io
+  template:
+    metadata:
+      labels:
+        app: io
+    spec:
+      containers:
+        - name: io
+          image: luizbronzeadoneto/io-bound:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: LOGGING_FILE_NAME
+              value: /logs/io.log
+            - name: SERVER_TOMCAT_ACCESSLOG_ENABLED
+              value: "true"
+            - name: SERVER_TOMCAT_ACCESSLOG_DIRECTORY
+              value: /logs
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          hostPath:
+            path: /mnt/dados/logs/io
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: io
+spec:
+  type: NodePort
+  selector:
+    app: io
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30003
