@@ -1,47 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: io
+  name: memory
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: io
+      app: memory
   template:
     metadata:
       labels:
-        app: io
+        app: memory
     spec:
       containers:
-        - name: io
-          image: luizbronzeadoneto/io-bound:latest
+        - name: memory
+          image: luizbronzeadoneto/memory-bound:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
-            - name: LOGGING_FILE_NAME
-              value: /logs/io.log
-            - name: SERVER_TOMCAT_ACCESSLOG_ENABLED
-              value: "true"
-            - name: SERVER_TOMCAT_ACCESSLOG_DIRECTORY
-              value: /logs
+            - name: LOG_FILE
+              value: /logs/memory.log
           volumeMounts:
             - name: logs
               mountPath: /logs
       volumes:
         - name: logs
           hostPath:
-            path: /mnt/dados/logs/io
+            path: /mnt/dados/logs/memory
             type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: io
+  name: memory
 spec:
   type: NodePort
   selector:
-    app: io
+    app: memory
   ports:
-    - port: 8080
-      targetPort: 8080
-      nodePort: 30003
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30002
