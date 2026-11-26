@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu
+  template:
+    metadata:
+      labels:
+        app: cpu
+    spec:
+      containers:
+        - name: cpu
+          image: luizbronzeadoneto/cpu-bound:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: LOG_FILE
+              value: /logs/cpu.log
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          hostPath:
+            path: /mnt/dados/logs/cpu
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu
+spec:
+  type: NodePort
+  selector:
+    app: cpu
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30001
